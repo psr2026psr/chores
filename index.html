@@ -1,0 +1,768 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Chore Chart</title>
+  <style>
+    body { margin: 0; font-family: Arial, Helvetica, sans-serif; background: #f4f1ea; color: #222; }
+    header { background: #2ec4b6; color: #0b2e2b; padding: 8px 10px; position: -webkit-sticky; position: sticky;
+             top: 0; z-index: 5; box-shadow: 0 2px 6px rgba(0,0,0,.25); }
+    .row { display: -webkit-flex; display: flex; -webkit-flex-wrap: wrap; flex-wrap: wrap;
+           -webkit-align-items: center; align-items: center; }
+    h1 { margin: 0 10px 0 0; font-size: 20px; }
+    #day { font-size: 15px; opacity: .85; margin-right: auto; }
+    .score { display: inline-block; font-weight: bold; font-size: 17px; color: #222; border-radius: 14px;
+             padding: 4px 10px; margin: 4px 6px 2px 0; }
+    .btn { font-size: 16px; padding: 8px 12px; margin: 3px; border: 0; border-radius: 8px;
+           background: #0e7c74; color: #fff; cursor: pointer; }
+    .btn.on { background: #f0c040; color: #222; font-weight: bold; }
+    .btn.green { background: #2e9e4f; }
+    .btn.red { background: #b03a2e; }
+    .btn.gray { background: #8a96a3; }
+    select { font-size: 16px; padding: 6px; margin: 3px; border-radius: 6px; }
+    #who { margin-top: 4px; font-size: 16px; }
+    #who label { margin: 3px 12px 3px 0; white-space: nowrap; }
+    #who input { width: 20px; height: 20px; vertical-align: middle; }
+    #msg { text-align: center; padding: 6px; color: #b03a2e; font-size: 15px; min-height: 4px; }
+    #grid { display: -webkit-flex; display: flex; -webkit-flex-wrap: wrap; flex-wrap: wrap; padding: 6px;
+            -webkit-align-items: flex-start; align-items: flex-start; }
+
+    .card { box-sizing: border-box; width: calc(50% - 12px); margin: 6px; background: #fff; border-radius: 12px;
+            border-top: 10px solid #888; padding: 12px; box-shadow: 0 2px 6px rgba(0,0,0,.12); }
+    .wide { width: calc(100% - 12px); }
+    .top { display: -webkit-flex; display: flex; -webkit-justify-content: space-between; justify-content: space-between;
+           -webkit-align-items: center; align-items: center; margin-bottom: 8px; }
+    .name { font-size: 24px; font-weight: bold; }
+    .stars { font-size: 21px; font-weight: bold; color: #d4a017; text-align: right; }
+    .wait-note { display: block; font-size: 13px; color: #a07800; font-weight: normal; }
+    .crow { display: -webkit-flex; display: flex; margin: 7px 0; }
+    .chore { display: block; -webkit-flex: 1; flex: 1; min-width: 0; box-sizing: border-box; text-align: left;
+             font-size: 19px; padding: 14px 12px; margin: 0; border: 3px solid #ddd; border-radius: 10px;
+             background: #fafafa; color: #222; cursor: pointer; }
+    .say { width: 52px; margin-left: 6px; font-size: 22px; border: 3px solid #ddd; border-radius: 10px;
+           background: #fff; cursor: pointer; padding: 0; }
+    .pts { float: right; color: #888; font-size: 16px; margin-left: 6px; }
+    .sub { display: block; font-size: 14px; margin-top: 4px; }
+    .done { background: #e8f6ea !important; border-color: #2e9e4f !important; color: #2e7d42 !important; }
+    .done .txt { text-decoration: line-through; }
+    .wait { background: #fff8e1 !important; border-color: #f0c040 !important; }
+    .wait .sub { color: #a07800; }
+    .back { background: #fdecea !important; border-color: #d9534f !important; }
+    .back .sub { color: #b03a2e; font-weight: bold; }
+    .part { border-color: #f0c040 !important; }
+    .dots { display: block; margin-top: 5px; }
+    .dot { display: inline-block; width: 14px; height: 14px; border-radius: 7px; margin-right: 4px;
+           border: 1px solid rgba(0,0,0,.25); vertical-align: middle; }
+    .none { font-size: 17px; color: #777; padding: 8px 0; }
+    .alldone { font-size: 18px; color: #2e7d42; font-weight: bold; padding: 8px 0; }
+    .note { font-size: 16px; padding: 6px 8px; margin: 6px 0; border-radius: 8px; }
+    .note.minus { background: #fdecea; color: #b03a2e; }
+    .note.plus { background: #e8f6ea; color: #2e7d42; }
+    .cathead { display: block; width: 100%; text-align: left; font-size: 19px; font-weight: bold; padding: 12px;
+               margin: 8px 0 0; border: 0; border-radius: 10px; background: #f3ead2; color: #222; cursor: pointer; }
+    .catbody { padding: 0 2px; }
+
+    .daycard { box-sizing: border-box; width: calc(50% - 12px); margin: 6px; background: #fff; border-radius: 10px;
+               padding: 8px 10px; box-shadow: 0 2px 6px rgba(0,0,0,.12); }
+    .daycard.today { box-shadow: 0 0 0 4px #f0c040; }
+    .daycard.future { background: #f1f1f1; }
+    .dlabel { font-weight: bold; font-size: 17px; margin-bottom: 4px; }
+    .tag { font-size: 12px; background: #f0c040; border-radius: 6px; padding: 2px 6px; margin-left: 6px; }
+    .kidline { border-left: 6px solid #888; padding-left: 7px; margin: 7px 0; }
+    .kname { font-weight: bold; font-size: 14px; }
+    .mini { display: block; width: 100%; box-sizing: border-box; text-align: left; font-size: 15px; padding: 7px 8px;
+            margin: 3px 0; border: 2px solid #ddd; border-radius: 7px; background: #fafafa; color: #222; cursor: pointer; }
+    .mini .pts { font-size: 13px; }
+    .mini .sub { font-size: 12px; }
+    .mini .dot { width: 10px; height: 10px; }
+    button:disabled { opacity: .55; cursor: default; }
+
+    #picker { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,.5);
+              z-index: 10; overflow: auto; }
+    .pbox { background: #fff; margin: 30px auto; width: 90%; max-width: 420px; border-radius: 12px; padding: 14px;
+            box-sizing: border-box; }
+    .ptitle { font-size: 21px; font-weight: bold; }
+    .psub { font-size: 15px; color: #666; margin: 4px 0 8px; }
+    .prow { display: -webkit-flex; display: flex; margin: 6px 0; }
+    .pkid { display: block; -webkit-flex: 1; flex: 1; box-sizing: border-box; text-align: left; font-size: 20px;
+            padding: 12px; margin: 0; border: 3px solid #ddd; border-left-width: 14px; border-radius: 10px;
+            background: #fafafa; color: #222; cursor: pointer; }
+    .minus { width: 64px; margin-left: 6px; font-size: 18px; border: 3px solid #ddd; border-radius: 10px;
+             background: #fff; cursor: pointer; }
+    .close { width: 100%; margin: 8px 0 0; font-size: 18px; padding: 12px; }
+
+    /* parent mode */
+    .pinshow { font-size: 34px; letter-spacing: 10px; text-align: center; padding: 10px; min-height: 44px; }
+    .pad { display: -webkit-flex; display: flex; -webkit-flex-wrap: wrap; flex-wrap: wrap; max-width: 300px; margin: 0 auto; }
+    .pad button { width: calc(33.33% - 10px); margin: 5px; font-size: 26px; padding: 14px 0; border: 2px solid #ccc;
+                  border-radius: 10px; background: #fafafa; cursor: pointer; }
+    .item { border: 2px solid #eee; border-left: 8px solid #888; border-radius: 10px; padding: 8px 10px; margin: 8px 0; }
+    .item .what { font-size: 18px; }
+    .item .meta { font-size: 13px; color: #777; margin: 2px 0 4px; }
+    .seg button { margin: 3px; }
+    .seg .btn { background: #e3e7eb; color: #222; }
+    .seg .btn.on { background: #f0c040; }
+    input[type=text], input[type=password] { font-size: 17px; padding: 8px; border: 2px solid #ccc; border-radius: 8px; width: 100%;
+                       box-sizing: border-box; margin: 6px 0; }
+
+    @media (max-width: 600px) { .card, .daycard { width: calc(100% - 12px); } }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="row"><h1>Chore Chart</h1><div id="day"></div></div>
+    <div class="row" id="scores"></div>
+    <div class="row" id="controls"></div>
+    <div class="row" id="who"></div>
+  </header>
+  <div id="msg"></div>
+  <div id="grid">Loading...</div>
+  <div id="picker"></div>
+
+  <script>
+    // Only needed if this page is hosted outside Google (e.g. GitHub Pages):
+    // paste your Apps Script web app link (ends in /exec) between the quotes.
+    var API_URL = 'https://script.google.com/macros/s/AKfycbzha2hKDOkzzBmXNmIIdxkR14GYzQDP_eToU4NhBZPh-ag_NFIr-uZ1iEDWJQb_Ipwp/exec';
+
+    var data = null, pdata = null, pick = null, busy = 0, talk = [];
+    var pin = null, pinTyping = '', parentName = '', parentNames = null, parentAt = 0, adj = { kid: -1, amount: 0, reason: '' };
+
+    function readKey(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+    function saveKey(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
+
+    var hidden = {}, openCats = {};
+    try { hidden = JSON.parse(readKey('hidden') || '{}'); } catch (e) { hidden = {}; }
+    try { openCats = JSON.parse(readKey('openCats') || '{}'); } catch (e) { openCats = {}; }
+    var mode = readKey('mode');
+    if (mode !== 'cal' && mode !== 'rewards') mode = 'today';
+    var weeks = Number(readKey('weeks')) || 1;
+    var size = Number(readKey('size')) || 1;
+    document.body.style.zoom = size;
+
+    function esc(s) {
+      return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+    function $(id) { return document.getElementById(id); }
+    function colorOf(name) {
+      for (var i = 0; i < data.kids.length; i++) if (data.kids[i].name === name) return data.kids[i].color;
+      return '#888888';
+    }
+    function kidIndex(name) {
+      for (var i = 0; i < data.kids.length; i++) if (data.kids[i].name === name) return i;
+      return -1;
+    }
+    function flash(t) { $('msg').textContent = t || ''; }
+
+    // ---------- talking to the Google Sheet ----------
+    // Every request carries the family login saved on this device
+    var fam = readKey('fam') || '';
+
+    function call(fn, args, ok, bad, famOverride) {
+      ok = ok || function () {};
+      bad = bad || fail;
+      var who = famOverride || fam;
+      if (window.google && google.script && google.script.run) {
+        google.script.run.withSuccessHandler(ok).withFailureHandler(bad).api(who, fn, args);
+        return;
+      }
+      fetch(API_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                       body: JSON.stringify({ fam: who, fn: fn, args: args }) })
+        .then(function (res) { return res.json(); })
+        .then(function (j) { if (j.ok) ok(j.result); else bad(j.error); })
+        .catch(bad);
+    }
+
+    function fail(err) {
+      var t = String(err && err.message || err || '');
+      if (t.indexOf('LOGIN') > -1) { logOut(); flash('Please log in.'); return; }
+      flash(t.indexOf('locked') > -1 ? 'Parent mode is locked for now. Try again later.' : t.indexOf('PIN') > -1 ? 'Wrong PIN.' : "Couldn't reach the chart. Check Wi-Fi; it will try again.");
+    }
+
+    function load() {
+      if (pick || !fam) return;
+      if (mode === 'parent') { if (pin) loadParent(); return; }
+      call('getView', [mode === 'cal' ? 'cal' : 'today', weeks], function (d) { data = d; flash(''); render(); });
+    }
+
+    function loadParent() {
+      call('getParent', [pin], function (p) {
+        pdata = p;
+        call('getView', ['today', 1], function (d) { data = d; flash(''); render(); });
+      }, function (e) { pin = null; fail(e); render(); });
+    }
+
+    function afterSave(result) {
+      busy--;
+      if (result === 'locked') flash('That day is finished, so it can’t be changed.');
+      else if (result === 'full') flash('Enough kids already did that one today.');
+      else if (result === 'not enough') flash('Not enough stars yet.');
+      if (!pick) load();
+    }
+    function afterFail(e) { busy--; fail(e); if (!pick) load(); }
+    function save(fn, args) { busy++; call(fn, args, afterSave, afterFail); }
+
+    // ---------- reading out loud ----------
+    function sayBtn(text) {
+      talk.push(text);
+      return '<button class="say" onclick="say(' + (talk.length - 1) + ')" title="Read it to me">&#128266;</button>';
+    }
+    function speakable(text) {
+      return String(text).replace(/[\uD800-\uDBFF][\uDC00-\uDFFF]/g, '')
+        .replace(/[←-⯿️‍]/g, '').replace(/\s+/g, ' ').trim();
+    }
+    function say(n) {
+      var t = talk[n];
+      if (!t || !window.speechSynthesis) return;
+      try {
+        window.speechSynthesis.cancel();
+        var u = new SpeechSynthesisUtterance(t);
+        u.rate = 0.9;
+        window.speechSynthesis.speak(u);
+      } catch (e) {}
+    }
+
+    // ---------- top of the screen ----------
+    function setMode(m) {
+      mode = m;
+      if (m !== 'parent') saveKey('mode', m);
+      $('grid').innerHTML = 'Loading...';
+      flash('');
+      render();
+      load();
+    }
+    function setWeeks(w) { weeks = Number(w) || 1; saveKey('weeks', String(weeks)); $('grid').innerHTML = 'Loading...'; load(); }
+    function setSize(step) {
+      size = Math.min(1.5, Math.max(0.6, Math.round((size + step * 0.1) * 10) / 10));
+      saveKey('size', String(size));
+      document.body.style.zoom = size;
+    }
+    function toggleShow(key) {
+      if (hidden[key]) delete hidden[key]; else hidden[key] = true;
+      saveKey('hidden', JSON.stringify(hidden));
+      render();
+    }
+    function showKid(i) { toggleShow(data.kids[i].name); }
+    function allShown() {
+      if (hidden.__extras) return false;
+      for (var i = 0; i < data.kids.length; i++) if (hidden[data.kids[i].name]) return false;
+      return true;
+    }
+    function toggleAll() {
+      if (allShown()) {
+        for (var i = 0; i < data.kids.length; i++) hidden[data.kids[i].name] = true;
+        hidden.__extras = true;
+      } else hidden = {};
+      saveKey('hidden', JSON.stringify(hidden));
+      render();
+    }
+
+    function renderTop() {
+      $('day').textContent = data ? data.todayLabel : '';
+      var sc = '';
+      if (data) for (var i = 0; i < data.kids.length; i++) {
+        var k = data.kids[i];
+        sc += '<span class="score" style="background:' + esc(k.color) + '" title="' + esc(k.name) + '">' +
+              esc(k.name.charAt(0)) + ' &#9733;' + k.total + '</span>';
+      }
+      $('scores').innerHTML = sc;
+
+      var c = '<button class="btn' + (mode === 'today' ? ' on' : '') + '" onclick="setMode(\'today\')">Today</button>' +
+              '<button class="btn' + (mode === 'cal' ? ' on' : '') + '" onclick="setMode(\'cal\')">Calendar</button>' +
+              '<button class="btn' + (mode === 'rewards' ? ' on' : '') + '" onclick="setMode(\'rewards\')">&#127873; Rewards</button>' +
+              '<button class="btn' + (mode === 'parent' ? ' on' : '') + '" onclick="setMode(\'parent\')">&#128274; Parent</button>';
+      if (mode === 'cal') {
+        var names = ['1 week', '2 weeks', '3 weeks', 'Month'];
+        c += '<select onchange="setWeeks(this.value)">';
+        for (var w = 1; w <= 4; w++) c += '<option value="' + w + '"' + (w === weeks ? ' selected' : '') + '>' + names[w - 1] + '</option>';
+        c += '</select>';
+      }
+      c += '<button class="btn" onclick="setSize(-1)">A&minus;</button><button class="btn" onclick="setSize(1)">A+</button>';
+      $('controls').innerHTML = c;
+
+      var h = '';
+      if (data && (mode === 'today' || mode === 'cal')) {
+        h = '<label><input type="checkbox" ' + (allShown() ? 'checked' : '') + ' onchange="toggleAll()"> <b>See all</b></label>';
+        for (var j = 0; j < data.kids.length; j++) {
+          h += '<label><input type="checkbox" ' + (hidden[data.kids[j].name] ? '' : 'checked') +
+               ' onchange="showKid(' + j + ')"> ' + esc(data.kids[j].name) + '</label>';
+        }
+        h += '<label><input type="checkbox" ' + (hidden.__extras ? '' : 'checked') +
+             ' onchange="toggleShow(\'__extras\')"> Extras</label>';
+      }
+      $('who').innerHTML = h;
+    }
+
+    // ---------- family login (once per device) ----------
+    function renderLogin() {
+      $('day').textContent = '';
+      $('scores').innerHTML = '';
+      $('controls').innerHTML = '';
+      $('who').innerHTML = '';
+      $('grid').innerHTML =
+        '<div class="card wide" style="border-top-color:#0e7c74;max-width:420px;margin:20px auto">' +
+        '<div class="name" style="margin-bottom:8px">Family login</div>' +
+        '<input type="text" id="famUser" placeholder="Username" autocapitalize="off" autocorrect="off">' +
+        '<input type="password" id="famPass" placeholder="Password" ' +
+        'autocapitalize="off" autocorrect="off" onkeydown="if(event.keyCode===13)logIn()">' +
+        '<button class="btn close" style="background:#0e7c74" onclick="logIn()">Log in</button>' +
+        '<div class="none" style="font-size:14px">You only need to do this once on each phone or tablet.</div></div>';
+    }
+
+    function logIn() {
+      var u = ($('famUser').value || '').trim(), p = ($('famPass').value || '').trim();
+      if (!u || !p) { flash('Type the username and password.'); return; }
+      var tryFam = u + '|' + p;
+      call('login', [], function (ok) {
+        if (ok === true) { fam = tryFam; saveKey('fam', fam); flash(''); render(); load(); }
+        else if (String(ok).indexOf('locked') === 0) flash('Too many wrong tries. Try again in ' + (String(ok).split(':')[1] || '15') + ' minutes.');
+        else flash('That username or password isn\'t right.');
+      }, fail, tryFam);
+    }
+
+    function logOut() {
+      fam = '';
+      data = null;
+      try { localStorage.removeItem('fam'); } catch (e) {}
+      pin = null; pdata = null; parentName = ''; parentNames = null;
+      if (pick) { pick = null; $('picker').style.display = 'none'; }
+      render();
+    }
+
+    // ---------- drawing ----------
+    function render() {
+      talk = [];
+      if (!fam) { renderLogin(); return; }
+      renderTop();
+      if (mode === 'parent') { $('grid').innerHTML = parentHtml(); return; }
+      if (!data) return;
+      if (mode === 'cal') $('grid').innerHTML = calHtml();
+      else if (mode === 'rewards') $('grid').innerHTML = rewardsHtml();
+      else $('grid').innerHTML = todayHtml();
+    }
+
+    var STATE = {
+      approved: { cls: ' done', icon: '&#10004; ', sub: '' },
+      pending: { cls: ' wait', icon: '&#9203; ', sub: 'Waiting for a grown-up' },
+      back: { cls: ' back', icon: '&#8617; ', sub: 'Try again!' }
+    };
+
+    function choreBtn(c, d, i, j, cls) {
+      var st = STATE[c.state] || { cls: '', icon: '', sub: '' };
+      var day = data.days[d], locked = day.key > data.today || (day.key < data.today && c.state !== 'back');
+      return '<button class="' + cls + st.cls + '"' + (locked ? ' disabled' : '') +
+             ' onclick="tap(' + d + ',' + i + ',' + j + ')">' + st.icon +
+             '<span class="txt">' + esc(c.chore) + '</span><span class="pts">+' + c.stars + '</span>' +
+             (st.sub ? '<span class="sub">' + st.sub + '</span>' : '') + '</button>';
+    }
+
+    function extraVisible(e) {
+      if (hidden.__extras) return false;
+      for (var i = 0; i < e.who.length; i++) if (!hidden[e.who[i]]) return true;
+      return false;
+    }
+    function claimers(e) {
+      var n = 0;
+      for (var k in e.by) if (e.by[k].n > 0) n++;
+      return n;
+    }
+    function byText(e) {
+      var parts = [];
+      for (var name in e.by) {
+        var b = e.by[name];
+        if (b.n) parts.push(name + (e.repeat && b.n > 1 ? ' ×' + b.n : '') + (b.pending ? ' ⏳' : ' ✔'));
+        if (b.back) parts.push(name + ' ↩ try again');
+      }
+      return parts.join(', ');
+    }
+
+    function extraBtn(e, d, x, cls) {
+      var cnt = claimers(e), full = !e.repeat && cnt >= e.max, anyBack = false, anyWait = false;
+      for (var n in e.by) { if (e.by[n].back) anyBack = true; if (e.by[n].pending) anyWait = true; }
+      var state = anyBack ? ' back' : (full ? (anyWait ? ' wait' : ' done') : (cnt ? ' part' : ''));
+      var dots = '';
+      for (var i = 0; i < e.who.length; i++) dots += '<span class="dot" style="background:' + esc(colorOf(e.who[i])) + '"></span>';
+      var day = data.days[d];
+      var locked = day.key > data.today || (day.key < data.today && !anyBack);
+      var t = byText(e);
+      return '<button class="' + cls + state + '"' + (locked ? ' disabled' : '') +
+             ' onclick="openExtra(' + d + ',' + x + ')">' +
+             '<span class="txt">' + esc(e.chore) + '</span><span class="pts">+' + e.stars +
+             (e.repeat ? ' each time' : (e.max > 1 ? ' each' : '')) + '</span>' +
+             '<span class="dots">' + dots + (e.weekly ? ' <small>once a week</small>' : '') + '</span>' +
+             (t ? '<span class="sub">' + esc(t) + '</span>' : '') + '</button>';
+    }
+
+    function todayHtml() {
+      var day = data.days[0], html = '';
+      for (var i = 0; i < data.kids.length; i++) {
+        var k = data.kids[i];
+        if (hidden[k.name]) continue;
+        var list = day.kids[i].chores, allDone = list.length > 0;
+        html += '<div class="card" style="border-top-color:' + esc(k.color) + '">' +
+                '<div class="top"><span class="name">' + esc(k.name) + '</span>' +
+                '<span class="stars">&#9733; ' + k.total +
+                (k.waiting ? '<span class="wait-note">+' + k.waiting + ' waiting</span>' : '') + '</span></div>';
+        for (var n = 0; n < k.notes.length; n++) {
+          var nt = k.notes[n];
+          html += '<div class="note ' + (nt.stars < 0 ? 'minus' : 'plus') + '">' +
+                  (nt.stars > 0 ? '+' : '&minus;') + Math.abs(nt.stars) + ' &#9733; ' + esc(nt.reason) + '</div>';
+        }
+        if (!list.length) html += '<div class="none">No chores today!</div>';
+        for (var j = 0; j < list.length; j++) {
+          if (list[j].state !== 'approved' && list[j].state !== 'pending') allDone = false;
+          html += '<div class="crow">' + choreBtn(list[j], 0, i, j, 'chore') +
+                  sayBtn(k.name + ', ' + speakable(list[j].chore)) + '</div>';
+        }
+        if (allDone) html += '<div class="alldone">All done! Great job!</div>';
+        html += '</div>';
+      }
+
+      // Extras, grouped by category
+      var cats = [], groups = {};
+      for (var x = 0; x < day.extras.length; x++) {
+        var e = day.extras[x];
+        if (!extraVisible(e)) continue;
+        if (!groups[e.cat]) { groups[e.cat] = []; cats.push(e.cat); }
+        groups[e.cat].push(x);
+      }
+      if (cats.length) {
+        html += '<div class="card wide" style="border-top-color:#f0c040"><div class="top"><span class="name">Extras</span>' +
+                '<span class="none">Dots show who can do it</span></div>';
+        for (var c = 0; c < cats.length; c++) {
+          var cat = cats[c], open = !!openCats[cat];
+          html += '<button class="cathead" onclick="toggleCat(' + c + ')">' + (open ? '&#9660; ' : '&#9654; ') +
+                  esc(cat) + ' (' + groups[cat].length + ')</button>';
+          if (open) {
+            html += '<div class="catbody">';
+            for (var g = 0; g < groups[cat].length; g++) {
+              var ex = day.extras[groups[cat][g]];
+              html += '<div class="crow">' + extraBtn(ex, 0, groups[cat][g], 'chore') + sayBtn(speakable(ex.chore)) + '</div>';
+            }
+            html += '</div>';
+          }
+        }
+        html += '</div>';
+        catOrder = cats;
+      }
+      return html || '<div class="none">Nobody is checked. Tick a name at the top.</div>';
+    }
+
+    var catOrder = [];
+    function toggleCat(c) {
+      var cat = catOrder[c];
+      if (openCats[cat]) delete openCats[cat]; else openCats[cat] = true;
+      saveKey('openCats', JSON.stringify(openCats));
+      render();
+    }
+
+    function calHtml() {
+      var html = '';
+      for (var d = 0; d < data.days.length; d++) {
+        var day = data.days[d], future = day.key > data.today, isToday = day.key === data.today, body = '';
+        for (var i = 0; i < data.kids.length; i++) {
+          var k = data.kids[i], list = day.kids[i].chores;
+          if (hidden[k.name] || !list.length) continue;
+          body += '<div class="kidline" style="border-left-color:' + esc(k.color) + '"><div class="kname">' + esc(k.name) + '</div>';
+          for (var j = 0; j < list.length; j++) body += choreBtn(list[j], d, i, j, 'mini');
+          body += '</div>';
+        }
+        var ex = '';
+        for (var x = 0; x < day.extras.length; x++) {
+          var e = day.extras[x];
+          if (!extraVisible(e)) continue;
+          var active = false;
+          for (var n in e.by) active = true;
+          if (active) ex += extraBtn(e, d, x, 'mini');      // only extras someone did that day
+        }
+        if (ex) body += '<div class="kidline" style="border-left-color:#f0c040"><div class="kname">Extras done</div>' + ex + '</div>';
+        html += '<div class="daycard' + (isToday ? ' today' : '') + (future ? ' future' : '') + '">' +
+                '<div class="dlabel">' + esc(day.label) + (isToday ? '<span class="tag">TODAY</span>' : '') + '</div>' +
+                (body || '<div class="none">Nothing scheduled</div>') + '</div>';
+      }
+      return html;
+    }
+
+    // ---------- kids tapping chores ----------
+    function tap(d, i, j) {
+      var day = data.days[d], k = data.kids[i], c = day.kids[i].chores[j];
+      if (day.key > data.today) return;
+      if (c.state === 'approved') { flash('A grown-up already approved that one.'); return; }
+      if (day.key < data.today && c.state !== 'back') return;
+      var before = c.state;
+      c.state = before === 'pending' ? '' : 'pending';      // show it right away
+      k.waiting += c.state === 'pending' ? c.stars : -c.stars;
+      render();
+      save('tapChore', [k.name, c.chore, day.key]);
+    }
+
+    function openExtra(d, x) {
+      if (data.days[d].key > data.today) return;
+      pick = { kind: 'extra', d: d, x: x };
+      renderPicker();
+    }
+
+    function renderPicker() {
+      talk = [];
+      var h;
+      if (pick.kind === 'reward') {
+        var r = data.rewards[pick.x];
+        h = '<div class="pbox"><div class="crow"><div style="flex:1;-webkit-flex:1"><div class="ptitle">' + esc(r.reward) +
+            '</div></div>' + sayBtn(speakable(r.reward)) + '</div><div class="psub">Costs ' + r.stars +
+            ' &#9733;. Who wants it? A grown-up will say yes in Parent mode.</div>';
+        for (var a = 0; a < data.kids.length; a++) {
+          var kk = data.kids[a];
+          if (r.who.indexOf(kk.name) < 0) continue;
+          var enough = kk.available >= r.stars;
+          h += '<div class="prow"><button class="pkid" style="border-left-color:' + esc(kk.color) + ' !important"' +
+               (enough ? '' : ' disabled') + ' onclick="askReward(' + a + ')">' + esc(kk.name) + ' <small>(&#9733;' + kk.available +
+               (enough ? '' : ', needs ' + (r.stars - kk.available) + ' more') + ')</small></button></div>';
+        }
+        h += '<button class="btn close" onclick="closePicker()">Close</button></div>';
+        $('picker').innerHTML = h;
+        $('picker').style.display = 'block';
+        return;
+      }
+
+      var day = data.days[pick.d], e = day.extras[pick.x], past = day.key < data.today;
+      var full = claimers(e) >= e.max;
+      h = '<div class="pbox"><div class="crow"><div style="flex:1;-webkit-flex:1">' +
+          '<div class="ptitle">' + esc(e.chore) + ' (+' + e.stars + ')</div></div>' + sayBtn(speakable(e.chore)) + '</div>' +
+          '<div class="psub">' + esc(day.label) + ' &middot; Who did it?' +
+          (e.max > 1 ? ' Up to ' + e.max + ' kids.' : ' Just one kid.') +
+          (e.repeat ? ' Tap a name each time it\'s done; &minus;1 takes one away.' : ' Tap again to undo.') +
+          ' A grown-up checks it before the stars count.</div>';
+      for (var i = 0; i < data.kids.length; i++) {
+        var k = data.kids[i];
+        if (e.who.indexOf(k.name) < 0) continue;
+        var b = e.by[k.name] || { n: 0, pending: 0, back: 0 };
+        var cls = b.back ? ' back' : (b.n ? (b.pending ? ' wait' : ' done') : '');
+        var approvedOnly = b.n && !b.pending && !b.back && !e.repeat;
+        var can = b.back > 0 || (!past && (b.n > 0 ? (e.repeat || b.pending > 0) : !full));
+        if (approvedOnly) can = false;
+        var label = esc(k.name) + (e.repeat && b.n ? ' &times;' + b.n : '') +
+                    (b.back ? ' &mdash; try again' : (b.pending ? ' &#9203;' : (b.n ? ' &#10004;' : '')));
+        h += '<div class="prow"><button class="pkid' + cls + '" style="border-left-color:' + esc(k.color) + ' !important"' +
+             (can ? '' : ' disabled') + ' onclick="pickKid(' + i + ')">' + label + '</button>' +
+             (e.repeat && b.pending && !past ? '<button class="minus" onclick="unpickKid(' + i + ')">&minus;1</button>' : '') + '</div>';
+      }
+      h += '<button class="btn close" onclick="closePicker()">Done</button></div>';
+      $('picker').innerHTML = h;
+      $('picker').style.display = 'block';
+    }
+
+    function pickKid(i) {
+      var day = data.days[pick.d], e = day.extras[pick.x], k = data.kids[i];
+      var b = e.by[k.name] = e.by[k.name] || { n: 0, pending: 0, back: 0 };
+      if (b.back) { b.back--; b.n++; b.pending++; k.waiting += e.stars; }
+      else if (e.repeat || !b.n) { b.n++; b.pending++; k.waiting += e.stars; }
+      else if (b.pending) { b.n--; b.pending--; k.waiting -= e.stars; }
+      renderPicker();
+      save('tapExtra', [k.name, e.chore, day.key, e.repeat ? 'add' : 'toggle']);
+    }
+
+    function unpickKid(i) {
+      var day = data.days[pick.d], e = day.extras[pick.x], k = data.kids[i], b = e.by[k.name];
+      if (!b || !b.pending) return;
+      b.n--; b.pending--; k.waiting -= e.stars;
+      renderPicker();
+      save('tapExtra', [k.name, e.chore, day.key, 'remove']);
+    }
+
+    function closePicker() {
+      pick = null;
+      $('picker').style.display = 'none';
+      render();
+      load();
+    }
+
+    // ---------- rewards ----------
+    function rewardsHtml() {
+      var html = '<div class="card wide" style="border-top-color:#f0c040"><div class="top"><span class="name">Stars to spend</span></div>';
+      for (var i = 0; i < data.kids.length; i++) {
+        var k = data.kids[i];
+        html += '<span class="score" style="background:' + esc(k.color) + '">' + esc(k.name) + ' &#9733;' + k.available + '</span>';
+      }
+      if (data.requests.length) {
+        html += '<div class="kname" style="margin-top:10px">Waiting for a grown-up</div>';
+        for (var q = 0; q < data.requests.length; q++) {
+          var rq = data.requests[q];
+          html += '<div class="item" style="border-left-color:' + esc(colorOf(rq.kid)) + '"><div class="what">&#9203; ' + esc(rq.kid) +
+                  ': ' + esc(rq.reward) + ' (' + rq.stars + ' &#9733;)</div>' +
+                  '<button class="btn gray" onclick="cancelReq(' + q + ')">Cancel</button></div>';
+        }
+      }
+      html += '</div>';
+      if (!data.rewards.length) return html + '<div class="none">Add rewards on the Rewards tab of the sheet.</div>';
+      html += '<div class="card wide" style="border-top-color:#2e9e4f"><div class="top"><span class="name">Rewards</span>' +
+              '<span class="none">Tap one to ask for it</span></div>';
+      for (var r = 0; r < data.rewards.length; r++) {
+        var rw = data.rewards[r], dots = '';
+        for (var w = 0; w < rw.who.length; w++) dots += '<span class="dot" style="background:' + esc(colorOf(rw.who[w])) + '"></span>';
+        html += '<div class="crow"><button class="chore" onclick="openReward(' + r + ')"><span class="txt">' + esc(rw.reward) +
+                '</span><span class="pts">' + rw.stars + ' &#9733;</span><span class="dots">' + dots + '</span></button>' +
+                sayBtn(speakable(rw.reward) + ', ' + rw.stars + ' stars') + '</div>';
+      }
+      return html + '</div>';
+    }
+
+    function openReward(r) { pick = { kind: 'reward', x: r }; renderPicker(); }
+    function askReward(i) {
+      var r = data.rewards[pick.x], k = data.kids[i];
+      k.available -= r.stars;
+      data.requests.push({ id: '', kid: k.name, reward: r.reward, stars: r.stars });
+      pick = null;
+      $('picker').style.display = 'none';
+      render();
+      save('requestReward', [k.name, r.reward]);
+    }
+    function cancelReq(q) {
+      var rq = data.requests[q];
+      if (!rq.id) return;
+      save('cancelReward', [rq.kid, rq.id]);
+      data.requests.splice(q, 1);
+      render();
+    }
+
+    // ---------- parent mode ----------
+    function parentHtml() {
+      if (!pin && !parentName) {
+        if (!parentNames) {
+          call('getParentNames', [], function (n) { parentNames = n; render(); });
+          return 'Loading...';
+        }
+        var w = '<div class="card wide" style="border-top-color:#0e7c74;max-width:420px;margin:12px auto">' +
+                '<div class="name" style="text-align:center;margin-bottom:8px">Who\'s this?</div>';
+        for (var pn = 0; pn < parentNames.length; pn++) {
+          w += '<button class="pkid" style="margin:6px 0;width:100%" onclick="pickParent(' + pn + ')">' + esc(parentNames[pn]) + '</button>';
+        }
+        return w + '</div>';
+      }
+      if (!pin) {
+        var dots = '';
+        for (var i = 0; i < pinTyping.length; i++) dots += '&#9679;';
+        var h = '<div class="card wide" style="border-top-color:#0e7c74;max-width:420px;margin:12px auto">' +
+                '<div class="name" style="text-align:center">Hi ' + esc(parentName) + '! Enter your PIN</div>' +
+                '<div class="pinshow">' + (dots || '&nbsp;') + '</div><div class="pad">';
+        var keys = ['1', '2', '3', '4', '5', '6', '7', '8', '9', 'C', '0', '&#9003;'];
+        for (var k = 0; k < keys.length; k++) h += '<button onclick="pinKey(' + k + ')">' + keys[k] + '</button>';
+        return h + '</div><button class="btn gray close" onclick="pickParent(-1)">&#8592; Not ' + esc(parentName) + '</button></div>';
+      }
+      if (!pdata) return 'Loading...';
+      var html = '<div style="width:100%;padding:4px 8px;font-size:16px">Signed in as <b>' + esc(parentName) + '</b></div>' +
+                 '<div class="card wide" style="border-top-color:#2d3e50"><div class="top"><span class="name">Waiting for approval (' +
+                 pdata.pending.length + ')</span>' +
+                 (pdata.pending.length ? '<button class="btn green" onclick="pAll()">Approve all</button>' : '') + '</div>';
+      if (!pdata.pending.length) html += '<div class="none">Nothing waiting. &#127881;</div>';
+      for (var p = 0; p < pdata.pending.length; p++) {
+        var it = pdata.pending[p];
+        html += '<div class="item" style="border-left-color:' + esc(colorOf(it.kid)) + '"><div class="what"><b>' + esc(it.kid) + '</b>: ' +
+                esc(it.text) + ' <b>' + (it.stars > 0 ? '+' : '') + it.stars + ' &#9733;</b></div><div class="meta">' + esc(it.dateLabel) + '</div>' +
+                '<button class="btn green" onclick="pReview(' + p + ',\'approve\')">&#10004; Approve</button>' +
+                (it.type === 'chore' ? '<button class="btn" onclick="pReview(' + p + ',\'back\')">&#8617; Send back</button>' : '') +
+                '<button class="btn red" onclick="pReview(' + p + ',\'remove\')">&#10006; ' + (it.type === 'reward' ? 'Say no' : 'Remove') + '</button></div>';
+      }
+      html += '</div>';
+
+      // take away / give stars
+      html += '<div class="card wide" style="border-top-color:#b03a2e"><div class="top"><span class="name">Take away or give stars</span></div><div class="seg">';
+      for (var i2 = 0; i2 < data.kids.length; i2++) {
+        html += '<button class="btn' + (adj.kid === i2 ? ' on' : '') + '" style="border-left:8px solid ' + esc(data.kids[i2].color) +
+                '" onclick="adjKid(' + i2 + ')">' + esc(data.kids[i2].name) + ' (&#9733;' + data.kids[i2].total + ')</button>';
+      }
+      html += '</div><div class="seg">';
+      var amts = [-1, -2, -5, -10, 1, 2, 5];
+      for (var a = 0; a < amts.length; a++) {
+        html += '<button class="btn' + (adj.amount === amts[a] ? ' on' : '') + '" onclick="adjAmt(' + amts[a] + ')">' +
+                (amts[a] > 0 ? '+' + amts[a] : '&minus;' + (-amts[a])) + '</button>';
+      }
+      html += '</div><div class="seg">';
+      var reasons = ['Not listening', 'Fighting', 'Talking back', 'Not sharing', 'Helping out', 'Great attitude'];
+      for (var rr = 0; rr < reasons.length; rr++) {
+        html += '<button class="btn' + (adj.reason === reasons[rr] ? ' on' : '') + '" onclick="adjReason(' + rr + ')">' + reasons[rr] + '</button>';
+      }
+      html += '</div><input type="text" id="reason" placeholder="Or type a reason" value="' + esc(adj.reason) + '" oninput="adj.reason=this.value">' +
+              '<button class="btn red close" onclick="adjSave()">Save</button></div>';
+
+      html += '<div class="card wide" style="border-top-color:#8a96a3"><div class="top"><span class="name">Recent star changes</span></div>';
+      if (!pdata.recent.length) html += '<div class="none">None yet.</div>';
+      for (var t = 0; t < pdata.recent.length; t++) {
+        var rc = pdata.recent[t];
+        html += '<div class="meta" style="font-size:15px;padding:3px 0"><b>' + esc(rc.kid) + '</b> ' + (rc.stars > 0 ? '+' : '') + rc.stars +
+                ' &#9733; &middot; ' + esc(rc.text) + ' &middot; ' + esc(rc.dateLabel) + (rc.by ? ' &middot; ' + esc(rc.by) : '') + '</div>';
+      }
+      html += '</div><div style="width:100%;padding:6px"><button class="btn gray close" onclick="lockParent()">&#128274; Lock parent mode</button>' +
+              '<button class="btn red close" onclick="logOut()">Log this device out of the chart</button></div>';
+      return html;
+    }
+
+    var PADKEYS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', 'C', '0', 'back'];
+    function pinKey(k) {
+      var key = PADKEYS[k];
+      if (key === 'C') pinTyping = '';
+      else if (key === 'back') pinTyping = pinTyping.slice(0, -1);
+      else if (pinTyping.length < 8) pinTyping += key;
+      render();
+      if (pinTyping.length === 4) {
+        var tryPin = parentName + '|' + pinTyping;
+        call('checkPin', [tryPin], function (ok) {
+          pinTyping = '';
+          if (ok === true) { pin = tryPin; parentAt = Date.now(); flash(''); render(); loadParent(); }
+          else if (String(ok).indexOf('locked') === 0) {
+            var mins = String(ok).split(':')[1] || '15';
+            flash('Too many wrong tries. Parent mode is locked for ' + mins + ' minute' + (mins === '1' ? '' : 's') + '.');
+            render();
+          }
+          else { flash('Wrong PIN.'); render(); }
+        });
+      }
+    }
+    function touchParent() { parentAt = Date.now(); }
+    function pickParent(n) { parentName = n < 0 ? '' : parentNames[n]; pinTyping = ''; flash(''); render(); }
+    function lockParent() { pin = null; pdata = null; parentName = ''; parentNames = null; adj = { kid: -1, amount: 0, reason: '' }; setMode('today'); }
+    function pReview(p, action) {
+      touchParent();
+      var it = pdata.pending.splice(p, 1)[0];
+      render();
+      busy++;
+      call('review', [pin, it.id, action], function () { busy--; loadParent(); }, afterFail);
+    }
+    function pAll() {
+      touchParent();
+      pdata.pending = [];
+      render();
+      busy++;
+      call('approveAll', [pin], function () { busy--; loadParent(); }, afterFail);
+    }
+    function adjKid(i) { touchParent(); adj.kid = i; render(); }
+    function adjAmt(a) { touchParent(); adj.amount = a; render(); }
+    function adjReason(r) {
+      touchParent();
+      adj.reason = ['Not listening', 'Fighting', 'Talking back', 'Not sharing', 'Helping out', 'Great attitude'][r];
+      render();
+    }
+    function adjSave() {
+      touchParent();
+      if (adj.kid < 0) { flash('Pick a kid first.'); return; }
+      var amt = adj.amount;
+      if (!amt) { flash('Pick how many stars.'); return; }
+      var k = data.kids[adj.kid];
+      busy++;
+      call('adjustStars', [pin, k.name, amt, adj.reason], function () {
+        busy--;
+        flash((amt < 0 ? 'Took away ' + (-amt) : 'Gave ' + amt) + ' ★ ' + (amt < 0 ? 'from ' : 'to ') + k.name + '.');
+        adj = { kid: -1, amount: 0, reason: '' };
+        loadParent();
+      }, afterFail);
+    }
+
+    // lock parent mode after 5 minutes without a tap
+    setInterval(function () {
+      if (pin && Date.now() - parentAt > 5 * 60 * 1000) { lockParent(); flash('Parent mode locked.'); }
+    }, 30000);
+
+    render();
+    load();
+    setInterval(function () { if (!busy && !(mode === 'parent' && !pin)) load(); }, 60000);
+  </script>
+</body>
+</html>
