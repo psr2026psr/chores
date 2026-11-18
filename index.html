@@ -1,4 +1,16 @@
 <!DOCTYPE html>
+<!--
+  =====================================================================
+   FILE: index.html  (lowercase i)  ->  GOES ON GITHUB
+  =====================================================================
+   Upload this to the GitHub repository psr2026psr/chores, replacing the old one.
+   Used by https://psr2026psr.github.io/chores/  (kids' phones on Family Link).
+
+   How to tell: the API_URL line below HAS your /exec link in it.
+   The Apps Script copy (capital Index.html) has it empty.
+   Do NOT paste this one into Apps Script.
+  =====================================================================
+-->
 <html>
 <head>
   <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -24,6 +36,15 @@
     #who label { margin: 3px 12px 3px 0; white-space: nowrap; }
     #who input { width: 20px; height: 20px; vertical-align: middle; }
     #msg { text-align: center; padding: 6px; color: #b03a2e; font-size: 15px; min-height: 4px; }
+    #bgArt { position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 0; pointer-events: none;
+             overflow: hidden; background-size: cover; background-position: center; }
+    #bgArt .art { position: absolute; font-size: 34px; opacity: .16; }
+    #msg, #grid { position: relative; z-index: 1; }
+    .hist-day { font-weight: bold; font-size: 16px; margin: 12px 0 2px; padding-bottom: 3px; border-bottom: 2px solid #ddd; }
+    .hist-tot { font-weight: normal; font-size: 14px; }
+    .hist-row { font-size: 15px; padding: 4px 0 4px 8px; border-left: 5px solid #888; margin: 4px 0; }
+    .hist-row .by { color: #888; font-size: 13px; }
+    .hist-back { color: #b03a2e; }
     #grid { display: -webkit-flex; display: flex; -webkit-flex-wrap: wrap; flex-wrap: wrap; padding: 6px;
             -webkit-align-items: flex-start; align-items: flex-start; }
 
@@ -115,6 +136,8 @@
     <div class="row" id="controls"></div>
     <div class="row" id="who"></div>
   </header>
+  <style id="themeCss"></style>
+  <div id="bgArt"></div>
   <div id="msg"></div>
   <div id="grid">Loading...</div>
   <div id="picker"></div>
@@ -125,6 +148,8 @@
     var API_URL = 'https://script.google.com/macros/s/AKfycbzha2hKDOkzzBmXNmIIdxkR14GYzQDP_eToU4NhBZPh-ag_NFIr-uZ1iEDWJQb_Ipwp/exec';
 
     var data = null, pdata = null, pick = null, busy = 0, talk = [];
+    var deviceTheme = readKey('theme') || '', lastTheme = null;
+    var hist = { kid: '', days: 7 };
     var pin = null, pinTyping = '', parentName = '', parentNames = null, parentAt = 0, adj = { kid: -1, amount: 0, reason: '' };
 
     function readKey(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
@@ -196,6 +221,7 @@
       if (result === 'locked') flash('That day is finished, so it can’t be changed.');
       else if (result === 'full') flash('Enough kids already did that one today.');
       else if (result === 'not enough') flash('Not enough stars yet.');
+      else if (result === 'limit') flash('That\u2019s the most for today. Try again tomorrow!');
       if (!pick) load();
     }
     function afterFail(e) { busy--; fail(e); if (!pick) load(); }
@@ -277,6 +303,14 @@
         c += '</select>';
       }
       c += '<button class="btn" onclick="setSize(-1)">A&minus;</button><button class="btn" onclick="setSize(1)">A+</button>';
+      if (data && data.themes && data.themes.length) {
+        c += '<select onchange="setTheme(this.value)" title="Theme"><option value="">&#127912; Theme</option>';
+        for (var th = 0; th < data.themes.length; th++) {
+          var tn = data.themes[th].name;
+          c += '<option value="' + esc(tn) + '"' + (tn === deviceTheme ? ' selected' : '') + '>' + esc(tn) + '</option>';
+        }
+        c += '</select>';
+      }
       $('controls').innerHTML = c;
 
       var h = '';
@@ -328,10 +362,85 @@
       render();
     }
 
+    // ---------- themes ----------
+    // Each device picks its own theme. When only one kid is ticked at the top,
+    // that kid's favorite theme (Kids tab, Theme column) shows instead.
+    function setTheme(name) { deviceTheme = name; saveKey('theme', name); render(); }
+
+    function findTheme(name) {
+      if (!data || !data.themes || !name) return null;
+      for (var i = 0; i < data.themes.length; i++) {
+        if (data.themes[i].name.toLowerCase() === String(name).toLowerCase()) return data.themes[i];
+      }
+      return null;
+    }
+
+    function activeTheme() {
+      if (!data) return null;
+      if (mode === 'today' || mode === 'cal') {
+        var shown = [];
+        for (var i = 0; i < data.kids.length; i++) if (!hidden[data.kids[i].name]) shown.push(data.kids[i]);
+        if (shown.length === 1 && findTheme(shown[0].theme)) return findTheme(shown[0].theme);
+      }
+      return findTheme(deviceTheme) || (data.themes && data.themes[0]) || null;
+    }
+
+    function cssColor(v) { return /^#?[0-9a-zA-Z]{3,20}$/.test(v || '') ? v : ''; }
+
+    function applyTheme() {
+      var t = activeTheme();
+      var key = t ? JSON.stringify(t) : '';
+      if (key === lastTheme) return;
+      lastTheme = key;
+      var css = '';
+      if (t) {
+        var c = function (v) { return cssColor(v); };
+        if (c(t.page)) css += 'body{background:' + t.page + '}';
+        if (c(t.text)) css += 'body,.chore,.mini,.pkid,.cathead,.say,.minus{color:' + t.text + '}';
+        if (c(t.header)) css += 'header{background:' + t.header + '}';
+        if (c(t.headerText)) css += 'header,header label,#day{color:' + t.headerText + '}';
+        if (c(t.buttons)) css += '.btn{background:' + t.buttons + ';color:#fff}';
+        if (c(t.cards)) css += '.card,.daycard,.pbox,.daycard.future{background:' + t.cards + '}';
+        if (c(t.choreButtons)) css += '.chore,.mini,.pkid,.say,.minus,.cathead,.pad button{background:' + t.choreButtons + '}';
+      }
+      $('themeCss').textContent = css;
+
+      var art = $('bgArt'), h = '';
+      art.style.backgroundImage = t && /^https:\/\//.test(t.image || '') ? 'url("' + t.image.replace(/"/g, '%22') + '")' : '';
+      if (t && t.emoji && !art.style.backgroundImage) {
+        var list = splitEmoji(t.emoji);
+        if (list.length) {
+          var n = 0;
+          for (var y = 0; y < 22; y++) for (var x = 0; x < 8; x++) {
+            var em = list[n++ % list.length];
+            h += '<span class="art" style="top:' + (y * 90 + (x % 2) * 40) + 'px;left:' + (x * 13 + (y % 2) * 6) + '%;' +
+                 'transform:rotate(' + ((x * 37 + y * 23) % 50 - 25) + 'deg)">' + em + '</span>';
+          }
+        }
+      }
+      art.innerHTML = h;
+    }
+
+    // Splits "🐐🐔🐇" into separate pictures (keeps flags, skin tones and ❄️-style pairs together)
+    function splitEmoji(str) {
+      var out = [], cur = '';
+      var chars = String(str).replace(/[\s,]+/g, '').match(/[\uD800-\uDBFF][\uDC00-\uDFFF]|[\s\S]/g) || [];
+      for (var i = 0; i < chars.length; i++) {
+        var ch = chars[i];
+        var joiner = ch === '\uFE0F' || ch === '\u200D' || /^\uD83C[\uDFFB-\uDFFF]$/.test(ch) ||
+                     (cur && cur.charAt(cur.length - 1) === '\u200D');
+        if (joiner && cur) cur += ch;
+        else { if (cur) out.push(cur); cur = ch; }
+      }
+      if (cur) out.push(cur);
+      return out;
+    }
+
     // ---------- drawing ----------
     function render() {
       talk = [];
       if (!fam) { renderLogin(); return; }
+      applyTheme();
       renderTop();
       if (mode === 'parent') { $('grid').innerHTML = parentHtml(); return; }
       if (!data) return;
@@ -513,9 +622,14 @@
           var kk = data.kids[a];
           if (r.who.indexOf(kk.name) < 0) continue;
           var enough = kk.available >= r.stars;
+          var used = (r.used && r.used[kk.name]) || 0;
+          var maxed = r.limit !== null && used >= r.limit;
+          var note = maxed ? (r.limit === 0 ? 'not today' : 'used all ' + r.limit + ' today') :
+                     !enough ? 'needs ' + (r.stars - kk.available) + ' more' :
+                     r.limit !== null ? (r.limit - used) + ' left today' : '';
           h += '<div class="prow"><button class="pkid" style="border-left-color:' + esc(kk.color) + ' !important"' +
-               (enough ? '' : ' disabled') + ' onclick="askReward(' + a + ')">' + esc(kk.name) + ' <small>(&#9733;' + kk.available +
-               (enough ? '' : ', needs ' + (r.stars - kk.available) + ' more') + ')</small></button></div>';
+               (enough && !maxed ? '' : ' disabled') + ' onclick="askReward(' + a + ')">' + esc(kk.name) + ' <small>(&#9733;' + kk.available +
+               (note ? ', ' + note : '') + ')</small></button></div>';
         }
         h += '<button class="btn close" onclick="closePicker()">Close</button></div>';
         $('picker').innerHTML = h;
@@ -598,8 +712,14 @@
       for (var r = 0; r < data.rewards.length; r++) {
         var rw = data.rewards[r], dots = '';
         for (var w = 0; w < rw.who.length; w++) dots += '<span class="dot" style="background:' + esc(colorOf(rw.who[w])) + '"></span>';
+        var lim = '';
+        if (rw.weekday !== null || rw.weekend !== null) {
+          lim = '<span class="sub" style="color:#777">Limit per day: ' +
+                (rw.weekday === null ? 'no limit' : rw.weekday) + ' on school days, ' +
+                (rw.weekend === null ? 'no limit' : rw.weekend) + ' on weekends</span>';
+        }
         html += '<div class="crow"><button class="chore" onclick="openReward(' + r + ')"><span class="txt">' + esc(rw.reward) +
-                '</span><span class="pts">' + rw.stars + ' &#9733;</span><span class="dots">' + dots + '</span></button>' +
+                '</span><span class="pts">' + rw.stars + ' &#9733;</span><span class="dots">' + dots + '</span>' + lim + '</button>' +
                 sayBtn(speakable(rw.reward) + ', ' + rw.stars + ' stars') + '</div>';
       }
       return html + '</div>';
@@ -609,6 +729,7 @@
     function askReward(i) {
       var r = data.rewards[pick.x], k = data.kids[i];
       k.available -= r.stars;
+      if (r.used) r.used[k.name] = (r.used[k.name] || 0) + 1;
       data.requests.push({ id: '', kid: k.name, reward: r.reward, stars: r.stars });
       pick = null;
       $('picker').style.display = 'none';
@@ -690,9 +811,72 @@
         html += '<div class="meta" style="font-size:15px;padding:3px 0"><b>' + esc(rc.kid) + '</b> ' + (rc.stars > 0 ? '+' : '') + rc.stars +
                 ' &#9733; &middot; ' + esc(rc.text) + ' &middot; ' + esc(rc.dateLabel) + (rc.by ? ' &middot; ' + esc(rc.by) : '') + '</div>';
       }
-      html += '</div><div style="width:100%;padding:6px"><button class="btn gray close" onclick="lockParent()">&#128274; Lock parent mode</button>' +
+      html += '</div>' + historyHtml();
+      html += '<div style="width:100%;padding:6px"><button class="btn gray close" onclick="lockParent()">&#128274; Lock parent mode</button>' +
               '<button class="btn red close" onclick="logOut()">Log this device out of the chart</button></div>';
       return html;
+    }
+
+    // ---------- parent history ----------
+    function historyHtml() {
+      var h = '<div class="card wide" style="border-top-color:#0e7c74"><div class="top"><span class="name">History</span></div><div class="seg">' +
+              '<button class="btn' + (hist.kid === '' ? ' on' : '') + '" onclick="histKid(-1)">Everyone</button>';
+      for (var i = 0; i < data.kids.length; i++) {
+        h += '<button class="btn' + (hist.kid === data.kids[i].name ? ' on' : '') + '" style="border-left:8px solid ' +
+             esc(data.kids[i].color) + '" onclick="histKid(' + i + ')">' + esc(data.kids[i].name) + '</button>';
+      }
+      h += '</div><div class="seg">';
+      var ranges = [[1, 'Today'], [7, '7 days'], [14, '2 weeks'], [30, '30 days'], [60, '60 days']];
+      for (var r = 0; r < ranges.length; r++) {
+        h += '<button class="btn' + (hist.days === ranges[r][0] ? ' on' : '') + '" onclick="histDays(' + ranges[r][0] + ')">' + ranges[r][1] + '</button>';
+      }
+      h += '</div>';
+
+      var from = addDaysJs(data.today, 1 - hist.days), rows = [], earned = {}, spent = {};
+      var list = pdata.history || [];
+      for (var x = 0; x < list.length; x++) {
+        var it = list[x];
+        if (it.date < from || (hist.kid && it.kid !== hist.kid)) continue;
+        rows.push(it);
+        if (it.status === 'approved') {
+          if (it.stars >= 0) earned[it.kid] = (earned[it.kid] || 0) + it.stars;
+          else spent[it.kid] = (spent[it.kid] || 0) - it.stars;
+        }
+      }
+
+      // totals for the period
+      h += '<div style="margin:6px 0">';
+      for (var k = 0; k < data.kids.length; k++) {
+        var kn = data.kids[k].name;
+        if (hist.kid && kn !== hist.kid) continue;
+        h += '<div class="meta" style="font-size:15px"><span class="dot" style="background:' + esc(data.kids[k].color) + '"></span><b>' + esc(kn) +
+             '</b>: +' + (earned[kn] || 0) + ' earned, &minus;' + (spent[kn] || 0) + ' taken/spent, now &#9733;' + data.kids[k].total + '</div>';
+      }
+      h += '</div>';
+
+      if (!rows.length) return h + '<div class="none">Nothing in this time.</div></div>';
+      var day = '';
+      for (var j = 0; j < rows.length; j++) {
+        var e = rows[j];
+        if (e.date !== day) {
+          day = e.date;
+          var tot = 0;
+          for (var q = j; q < rows.length && rows[q].date === day; q++) if (rows[q].status === 'approved') tot += rows[q].stars;
+          h += '<div class="hist-day">' + esc(e.dateLabel) + ' <span class="hist-tot">(' + (tot >= 0 ? '+' : '') + tot + ' &#9733;)</span></div>';
+        }
+        var icon = e.status === 'back' ? '&#8617; ' : e.type === 'reward' ? '' : e.type === 'adjust' ? (e.stars < 0 ? '&#9888; ' : '&#127775; ') : '&#10004; ';
+        h += '<div class="hist-row' + (e.status === 'back' ? ' hist-back' : '') + '" style="border-left-color:' + esc(colorOf(e.kid)) + '">' +
+             icon + '<b>' + esc(e.kid) + '</b> ' + esc(e.text) + ' <b>' + (e.status === 'back' ? 'sent back' : (e.stars > 0 ? '+' : '') + e.stars + ' &#9733;') + '</b>' +
+             (e.by ? ' <span class="by">&middot; ' + esc(e.by) + '</span>' : '') + '</div>';
+      }
+      return h + '</div>';
+    }
+
+    function histKid(i) { touchParent(); hist.kid = i < 0 ? '' : data.kids[i].name; render(); }
+    function histDays(n) { touchParent(); hist.days = n; render(); }
+    function addDaysJs(key, n) {
+      var p = key.split('-');
+      return new Date(Date.UTC(+p[0], +p[1] - 1, +p[2] + n)).toISOString().slice(0, 10);
     }
 
     var PADKEYS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', 'C', '0', 'back'];
